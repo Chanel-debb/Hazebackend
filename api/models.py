@@ -1,6 +1,7 @@
 from django.db import models
 
 class Vistor(models.Model):
+    id = models.AutoField(primary_key=True)
     fullname = models.CharField(max_length=100)
     phone_number = models.JSONField()
     description = models.TextField()
