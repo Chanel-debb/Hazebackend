@@ -99,10 +99,10 @@ class AnnouncementRetrieveUpdateDeletView(views.APIView):
 
 class AccessCodeListcreate(generics.ListCreateAPIView):
     queryset = AccessCode.objects.all()
-    serializer_class = AccessCodeSerializer()
+    serializer_class = AccessCodeSerializer
 
 
 
 class AccessCodeRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = AccessCode.objects.all()
-    serializer_class = AccessCodeSerializer()
+    serializer_class = AccessCodeSerializer
