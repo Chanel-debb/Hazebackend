@@ -1,13 +1,30 @@
 from django.urls import path
-from .views import get_all_vistors, add_visitor, get_visitor, delete_visitor, update_visitor_signout
+from .views import (
+    get_all_vistors, 
+    add_visitor, 
+    get_visitor, 
+    delete_visitor, 
+    update_visitor_signout,
+    AnnouncementView, 
+    AnnouncementRetrieveUpdateDeletView,
+    AccessCodeListcreate,
+    AccessCodeRetrieveUpdateDelete
+)
 
 
 urlpatterns = [
+    # Visitor urls
     path('visitors', get_all_vistors, name="All visitors"),
     path('visitors/add', add_visitor, name="Create"),
     path('visitors/<int:id>', get_visitor, name="Get visitor"),
     path('visitors/delete/<int:id>', delete_visitor, name="Delete Visitor"),
-    path('visitors/update/<int:id>', update_visitor_signout, name="Update Visitor")
+    path('visitors/update/<int:id>', update_visitor_signout, name="Update Visitor"),
+    # Annoucement urls
+    path("announcements", AnnouncementView.as_view(), name="Create Get all Announcements"),
+    path("announcements/<int:id>", AnnouncementRetrieveUpdateDeletView.as_view(), name="Create Get ID Delete and Update Announcements"),
+    # Access Code urls
+    path("access-codes", AccessCodeListcreate.as_view(), name="Create Get all Access Code"),
+    path("access-code/<int:id>", AccessCodeRetrieveUpdateDelete.as_view(), name="Create Get ID Delete and Update AccessCode"),
 ]
 
 # {
