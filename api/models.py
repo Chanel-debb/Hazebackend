@@ -36,9 +36,12 @@ class AccessCode(models.Model):
     end_time = models.DateTimeField()
     code = models.CharField(max_length=12, unique=True, null=True, blank=True)
     status = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
 
 
     def save(self, *args, **kwargs):
+        if self.id:
+            self.updated_at = timezone.now()
         if self:
             self.code = access_code()
         if self.end_time == timezone.now():
@@ -59,9 +62,15 @@ class Announcement(models.Model):
     content = models.TextField()
     signed_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.title
     
     class Meta:
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.id:
+            self.updated_at = timezone.now()
+        return super().save(*args, **kwargs)

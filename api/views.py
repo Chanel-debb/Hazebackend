@@ -7,10 +7,13 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import views, generics
 from django.http import Http404
+from rest_framework.permissions import IsAuthenticated
+from user.permissions import IsAdminUser, IsModeratorUser, IsBaseUser, IsAdminOrModeratorUser
 
 """Function Based View (FBV)"""
 @api_view() # GET all
 def get_all_vistors(request):
+    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     objs = Vistor.objects.all()
     serializer = VistorSerializer(objs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -27,6 +30,7 @@ def add_visitor(request):
 
 @api_view() # GET get by ID
 def get_visitor(request, id):
+    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     obj = get_object_or_404(Vistor, id=id)
     serializer = VistorSerializer(obj)
     return Response(serializer.data, status=status.HTTP_200_OK)  
@@ -34,6 +38,7 @@ def get_visitor(request, id):
 
 @api_view(['DELETE']) # DELETE 
 def delete_visitor(request, id):
+    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     obj = Vistor.objects.get(id=id)
     if obj:
         obj.delete()
@@ -54,6 +59,7 @@ def update_visitor_signout(request, id):
 """Class Based View (CBV)"""
 
 class AnnouncementView(views.APIView):
+    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     def post(self, request, format=None): # POST METHOD
         serializer = AnnouncementSerializer(data=request.data)
         if serializer.is_valid():
@@ -68,6 +74,7 @@ class AnnouncementView(views.APIView):
     
 
 class AnnouncementRetrieveUpdateDeletView(views.APIView):
+    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     def get_object(self, id):
         try:
             return Announcement.objects.get(id=id)
@@ -101,8 +108,17 @@ class AccessCodeListcreate(generics.ListCreateAPIView):
     queryset = AccessCode.objects.all()
     serializer_class = AccessCodeSerializer
 
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = [IsAuthenticated, IsAdminUser]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
+
 
 
 class AccessCodeRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = AccessCode.objects.all()
     serializer_class = AccessCodeSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
+    lookup_field = 'id'
