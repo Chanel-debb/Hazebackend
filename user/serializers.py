@@ -3,10 +3,18 @@ from .models import User
 
 
 class UserSignupSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
         fields = ['email', 'first_name', 'last_name', 'phone_number', 'other_names', 'reciept_id', 'password']
         extra_kwargs = {'password': {'write_only': True}}
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email already exists")
+        return value
 
 
     def create(self, validated_data):
