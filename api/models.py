@@ -1,6 +1,7 @@
 from django.db import models
 import uuid
 from django.utils import timezone
+from user.models import User
 
 
 def access_code():
@@ -74,3 +75,42 @@ class Announcement(models.Model):
         if self.id:
             self.updated_at = timezone.now()
         return super().save(*args, **kwargs)
+
+
+
+
+
+class EstatePayment(models.Model):
+    class Frequency(models.TextChoices):
+        ONE_TIME = "One-Time", "One-Time",
+        WEEKLY = "Weekly", "Weekly",
+        QUARTERLY = "Quarterly", "Quarterly"
+        MONTHLY = "Monthly", "Monthly"
+        YEARLY = "Yearly", "Yearly"
+    id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    frequency = models.CharField(max_length=10, choices=Frequency.choices, default=Frequency.ONE_TIME)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+
+    def __str__(self):
+        return self.title
+
+class PaymentTransaction(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "Pending", "Pending"
+        SUCCESSFUL = "Successful", "Successful"
+        FAILED = "Failed", "Failed"
+        CANCELED = "Canceled", "Canceled"
+    id = models.AutoField(primary_key=True)
+    payment = models.ForeignKey(EstatePayment, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reference = models.CharField(max_length=255, unique=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=50, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.reference

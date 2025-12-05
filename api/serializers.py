@@ -1,5 +1,20 @@
 from rest_framework import serializers
-from .models import Vistor, AccessCode, Announcement
+from .models import Vistor, AccessCode, Announcement, PaymentTransaction, EstatePayment
+
+
+class EstatePaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstatePayment
+        fields = ['id', 'title', 'amount', 'frequency', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentTransaction
+        fields = ['id', 'payment', 'user', 'reference', 'amount', 'status']
+        read_only_fields = ['id', 'status']
+
+
 
 
 

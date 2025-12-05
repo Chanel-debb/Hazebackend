@@ -8,7 +8,12 @@ from .views import (
     AnnouncementView, 
     AnnouncementRetrieveUpdateDeletView,
     AccessCodeListcreate,
-    AccessCodeRetrieveUpdateDelete
+    AccessCodeRetrieveUpdateDelete,
+    make_payment,
+    transaction,
+    payment,
+    create_payment,
+    verify_access_code
 )
 
 
@@ -25,6 +30,13 @@ urlpatterns = [
     # Access Code urls
     path("access-codes", AccessCodeListcreate.as_view(), name="Create Get all Access Code"),
     path("access-code/<int:id>", AccessCodeRetrieveUpdateDelete.as_view(), name="Create Get ID Delete and Update AccessCode"),
+
+    # Payment url
+    path('make-payment', make_payment, name="Make Payment"),
+    path('transactions', transaction, name="Payment Transactions"),
+    path('estate-payments', payment, name="Estate Payments"),
+    path('create-estate-payment', create_payment, name="Create Estate Payment"),
+    path('verify-access-code', verify_access_code, name="Verify Access Code"),
 ]
 
 # {

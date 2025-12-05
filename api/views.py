@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
-from .serializers import VistorSerializer, AnnouncementSerializer, AccessCodeSerializer
-from .models import Vistor, Announcement, AccessCode
+from .serializers import VistorSerializer, AnnouncementSerializer, AccessCodeSerializer, EstatePaymentSerializer, PaymentTransactionSerializer
+from .models import Vistor, Announcement, AccessCode, EstatePayment, PaymentTransaction
 from rest_framework import status
 from django.utils import timezone
 from rest_framework.response import Response
@@ -9,6 +9,54 @@ from rest_framework import views, generics
 from django.http import Http404
 from rest_framework.permissions import IsAuthenticated
 from user.permissions import IsAdminUser, IsModeratorUser, IsBaseUser, IsAdminOrModeratorUser
+from libs.paystack import initialize_payment
+from user.models import User
+
+
+@api_view(['POST'])
+def make_payment(request):
+    user_id = request.data.get('user_id')
+    estpay_id = request.data.get('estate_payment_id')
+    to_pay = EstatePayment.objects.filter(id=estpay_id).first()
+    if not to_pay:
+        return Response({"error": "Estate Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+    user = User.objects.filter(id=user_id).first()
+    print("User", user)
+    if not user:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    email = user.email
+    amount = int(to_pay.amount)
+    payment_data = initialize_payment(email=email, amount=amount)
+    payment_transaction = PaymentTransaction.objects.create(
+        user=user,
+        payment=to_pay,
+        reference=payment_data['reference'],
+        amount=amount
+    )
+    if payment_data:
+        return Response({"url": payment_data['url']}, status=status.HTTP_200_OK)
+    return Response({"error": "Payment initialization failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view()
+def transaction(request):
+    payments = PaymentTransaction.objects.all()
+    serializer = PaymentTransactionSerializer(payments, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view()
+def payment(request):
+    obj = EstatePayment.objects.all().order_by('-created_at')
+    serializer = EstatePaymentSerializer(obj, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def create_payment(request):
+    serializer = EstatePaymentSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)    
 
 """Function Based View (FBV)"""
 @api_view() # GET all
@@ -121,3 +169,13 @@ class AccessCodeRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = AccessCodeSerializer
     permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     lookup_field = 'id'
+
+
+
+@api_view(['POST'])
+def verify_access_code(request):
+    code = request.data.get('code')
+    access_code = AccessCode.objects.filter(code=code, status=True).first()
+    if access_code:
+        return Response({"message": "Access code is valid"}, status=status.HTTP_200_OK)
+    return Response({"error": "Invalid or expired access code"}, status=status.HTTP_400_BAD_REQUEST)
