@@ -58,8 +58,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     other_names = models.CharField(max_length=50, null=True, blank=True)
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=Role.choices, default=Role.RESIDENT)  # Changed default
-    receipt_id = models.CharField(max_length=100, null=True, blank=True, unique=True)  # Fixed typo: reciept -> receipt
+    role = models.CharField(max_length=20, choices=Role.choices, null=True, default=Role.RESIDENT)  # Changed default
+    receipt_id = models.CharField(max_length=100, null=True, blank=True)  # Fixed typo: reciept -> receipt
     is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -79,3 +79,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.id:
             self.updated_at = timezone.now()
         return super().save(*args, **kwargs)
+
+class Visitor(models.Model):
+    id = models.AutoField(primary_key=True)
+    fullname = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    signed_in = models.DateTimeField(null=True, blank=True)
+    
+
+    def __str__(self):
+        return self.fullname

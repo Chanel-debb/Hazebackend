@@ -6,7 +6,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .permissions import IsAdminUser, IsModeratorUser, IsBaseUser, IsAdminOrModeratorUser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .backend import CustomBackend
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, logout
+from .models import Visitor
+from .serializers import VistorSerializer
+from rest_framework.decorators import api_view, permission_classes
 
 auth = CustomBackend()
 
@@ -78,3 +82,38 @@ class UserUpdateView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserUpdateSerializer
     permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
     lookup_field = 'id'
+
+
+@csrf_exempt
+def paystack_webhook(request):
+    """Handle Paystack webhook for payment verification"""
+    if request.method == "POST":
+        data = json.loads(request.body)
+        
+        if data.get('event') == 'charge.success':
+            reference = data['data']['reference']
+            
+            try:
+                payment = Payment.objects.get(paystack_reference=reference)
+                payment.status = 'success'
+                payment.transaction_date = data['data']['paid_at']
+                payment.channel = data['data']['channel']
+                payment.paystack_response = data['data']
+                payment.save()
+                
+                payment.order.status = 'paid'
+                payment.order.save()
+                
+                return JsonResponse({'status': 'success'})
+            except Payment.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
+    
+    return JsonResponse({'status': 'error'}, status=400)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_vistors(request):
+    objs = Vistor.objects.filter(user=request.user).order_by('-created_at')
+    serializer = VistorSerializer(objs, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

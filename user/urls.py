@@ -12,4 +12,5 @@ urlpatterns = [
     path('signup/', UserSignupView.as_view(), name='user_signup'),
     path('login/', UserLoginView.as_view(), name='user_login'),
     path('user/<int:id>/', UserUpdateView.as_view(), name='user_detail'),
+    # path('webhook/paystack/',paystack_webhook, name='paystack_webhook'),
 ]

@@ -1,11 +1,12 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Visitor
+
 
 
 class UserSignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'phone_number', 'other_names', 'password', 'role']
+        fields = ['email', 'first_name', 'last_name', 'phone_number', 'other_names', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate_email(self, value):
@@ -51,3 +52,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['firstname', 'lastname', 'phone_number', 'othernames']
+
+class VistorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Visitor
+        fields = ['id', 'fullname', 'created_at', 'signed_in']
+        read_only_fields = ['id', 'created_at']
