@@ -110,11 +110,10 @@ class AccessCodeListcreate(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            self.permission_classes = [IsAuthenticated, IsAdminUser]
+            self.permission_classes = [IsAuthenticated]
         else:
             self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
-
 
 
 class AccessCodeRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):

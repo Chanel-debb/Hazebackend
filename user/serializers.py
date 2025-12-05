@@ -3,18 +3,9 @@ from .models import User
 
 
 class UserSignupSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-    firstname = serializers.CharField(source='first_name')
-    lastname = serializers.CharField(source='last_name')
-    phone_number = serializers.CharField(required=False, allow_blank=True)
-    othernames = serializers.CharField(source='other_names', required=False, allow_blank=True)
-    email = serializers.EmailField(required=True)
-    receipt_id = serializers.CharField(source='receipt_id') 
-    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.RESIDENT)
-
     class Meta:
         model = User
-        fields = ['email', 'firstname', 'lastname', 'phone_number', 'othernames', 'receipt_id', 'password', 'role']
+        fields = ['email', 'first_name', 'last_name', 'phone_number', 'other_names', 'password', 'role']
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate_email(self, value):
