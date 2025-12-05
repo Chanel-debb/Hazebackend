@@ -77,9 +77,9 @@ class ReportListSerializer(serializers.ModelSerializer):
         return f"{obj.user.first_name} {obj.user.last_name}" if obj.user else "Unknown"
 
 
-# class ReportUpdateSerializer(serializers.ModelSerializer):
-#     """Serializer for admins to update report status"""
+class ReportUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for admins to update report status"""
     
-#     class Meta:
-#         model = Report
-#         fields = ['status', 'admin_notes', 'assigned_to', 'resolved_at']
+    class Meta:
+        model = Report
+        fields = ['status', 'admin_notes', 'assigned_to', 'resolved_at']
