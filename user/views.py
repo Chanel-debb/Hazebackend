@@ -11,6 +11,8 @@ from django.contrib.auth import login, logout
 from .models import Visitor
 from .serializers import VistorSerializer
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
 
 auth = CustomBackend()
 
@@ -117,3 +119,19 @@ def get_all_vistors(request):
     objs = Vistor.objects.filter(user=request.user).order_by('-created_at')
     serializer = VistorSerializer(objs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
+    user = request.user
+    
+    if 'profile_image' in request.FILES:
+        user.profile_image = request.FILES['profile_image']
+        user.save()
+        
+        return Response({
+            'profile_image': request.build_absolute_uri(user.profile_image.url) if user.profile_image else None,
+            'message': 'Profile picture updated successfully'
+        }, status=status.HTTP_200_OK)
+    
+    return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
