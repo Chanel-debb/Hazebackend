@@ -4,8 +4,18 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
 
+# Custom user manager
 class AppUserManager(BaseUserManager):
-    def create_user(self, email, phone_number=None, first_name=None, last_name=None, other_names=None, password=None):
+
+    def create_user(
+        self,
+        email,
+        phone_number=None,
+        first_name=None,
+        last_name=None,
+        other_names=None,
+        password=None
+    ):
         if not email:
             raise ValueError("Email is required")
         if not password:
@@ -18,10 +28,13 @@ class AppUserManager(BaseUserManager):
             phone_number=phone_number,
             first_name=first_name,
             last_name=last_name,
-            other_names=other_names
+            other_names=other_names,
         )
+
         user.set_password(password)
+        user.is_active = True
         user.save(using=self._db)
+
         return user
 
     def create_superuser(self, email, phone_number, password=None):
@@ -32,17 +45,18 @@ class AppUserManager(BaseUserManager):
             email=email,
             phone_number=phone_number,
             password=password,
-            first_name="",
-            last_name="",
-            other_names=""
         )
+
+        # Give admin rights
         user.is_superuser = True
         user.is_staff = True
         user.role = User.Role.ADMIN
         user.save(using=self._db)
+
         return user
 
 
+# Custom user model
 class User(AbstractBaseUser, PermissionsMixin):
 
     class Role(models.TextChoices):
@@ -51,19 +65,30 @@ class User(AbstractBaseUser, PermissionsMixin):
         RESIDENT = "resident", "Resident"
 
     id = models.AutoField(primary_key=True)
+
     first_name = models.CharField(max_length=30, null=True, blank=True)
     last_name = models.CharField(max_length=30, null=True, blank=True)
     other_names = models.CharField(max_length=50, null=True, blank=True)
+
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=Role.choices, default=Role.RESIDENT)
+
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.RESIDENT
+    )
+
     receipt_id = models.CharField(max_length=100, null=True, blank=True)
+
+    # IMPORTANT FIELDS
     is_verified = models.BooleanField(default=False)
-    is_staff = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)        # REQUIRED TO LOGIN TO ADMIN
+    is_active = models.BooleanField(default=True)        # REQUIRED TO LOGIN TO ADMIN
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(null=True, blank=True)
 
-    # NEW FIELD (correctly added here)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
 
     USERNAME_FIELD = "email"
@@ -72,7 +97,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = AppUserManager()
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ["created_at"]
 
     def __str__(self):
         return self.email
@@ -83,6 +108,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return super().save(*args, **kwargs)
 
 
+# Visitors model
 class Visitor(models.Model):
     id = models.AutoField(primary_key=True)
     fullname = models.CharField(max_length=100)

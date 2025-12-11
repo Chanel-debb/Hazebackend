@@ -29,14 +29,23 @@ class ReportViewSet(viewsets.ModelViewSet):
         return ReportSerializer
     
     def get_queryset(self):
+        # Skip for Swagger schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return Report.objects.none()
+
         user = self.request.user
-        
-        # Admin/Moderators see all reports
+
+        # Prevent AnonymousUser errors
+        if not user.is_authenticated:
+            return Report.objects.none()
+
+        # Admin or security can see all
         if user.role in ['admin', 'security']:
             return Report.objects.all()
-        
-        # Regular users see only their own reports
+
+        # Regular users see only their reports
         return Report.objects.filter(user=user)
+
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

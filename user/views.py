@@ -65,9 +65,15 @@ class UserLoginView(views.APIView):
                     'lastname': user.last_name,
                     'othernames': user.other_names,
                     'phone_number': user.phone_number,
-                    'receipt_id': user.receipt_id,  # Fixed typo
+                    'receipt_id': user.receipt_id, 
+                    'role': user.role,
                 }
             }, status=status.HTTP_200_OK)
+
+            print('===BACKEND LOGIN RESPONSE===')
+            print(f"user role: {user.role}")
+            print(f"response data: {response_data}")
+            print('============================')
         
         return response.Response({
             'message': 'Invalid credentials'

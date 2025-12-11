@@ -66,7 +66,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:5174",
     "http://127.0.0.1:5500",
+    "https://hazebackend.sevalla.app",
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://hazebackend.sevalla.app',
+]
+
 
 ROOT_URLCONF = 'main.urls'
 
