@@ -153,16 +153,16 @@ class AnnouncementRetrieveUpdateDeletView(views.APIView):
 
 
 class AccessCodeListcreate(generics.ListCreateAPIView):
-    queryset = AccessCode.objects.all()
     serializer_class = AccessCodeSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            self.permission_classes = [IsAuthenticated]
-        else:
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
-
+    def get_queryset(self):
+        # Only return access codes created by the logged-in user
+        return AccessCode.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        # Automatically set the user when creating an access code
+        serializer.save(user=self.request.user)
 
 class AccessCodeRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = AccessCode.objects.all()

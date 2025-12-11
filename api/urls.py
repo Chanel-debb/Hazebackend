@@ -28,7 +28,7 @@ urlpatterns = [
     path("announcements", AnnouncementView.as_view(), name="Create Get all Announcements"),
     path("announcements/<int:id>", AnnouncementRetrieveUpdateDeletView.as_view(), name="Create Get ID Delete and Update Announcements"),
     # Access Code urls
-    path("access-codes", AccessCodeListcreate.as_view(), name="Create Get all Access Code"),
+    path('access-codes', AccessCodeListcreate.as_view(), name='access-codes'),
     path("access-code/<int:id>", AccessCodeRetrieveUpdateDelete.as_view(), name="Create Get ID Delete and Update AccessCode"),
 
     # Payment url

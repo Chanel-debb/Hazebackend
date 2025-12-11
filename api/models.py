@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 from django.utils import timezone
 from user.models import User
+from django.conf import settings
 
 
 def access_code():
@@ -31,6 +32,7 @@ class AccessCode(models.Model):
         WEEKLY = "Weekly", "Weekly"
         MONTHLY = "Monthly", "Monthly"
     id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='access_codes')
     created_at = models.DateTimeField(auto_now_add=True)
     code_type = models.CharField(max_length=10, choices=Type.choices, default=Type.MONTHLY)
     start_time = models.DateTimeField()

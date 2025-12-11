@@ -27,8 +27,8 @@ class VistorSerializer(serializers.ModelSerializer):
 class AccessCodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccessCode
-        fields = ['id', 'created_at', 'code_type', 'start_time', 'end_time', 'code', 'status']
-        read_only_fields = ['id', 'created_at', 'code', 'status']
+        fields = ['id', 'user', 'created_at', 'code_type', 'start_time', 'end_time', 'code', 'status', 'updated_at']
+        read_only_fields = ['id', 'user', 'created_at', 'code', 'updated_at']  
 
 
 class AnnouncementSerializer(serializers.ModelSerializer):
