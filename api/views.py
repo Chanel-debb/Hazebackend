@@ -257,9 +257,72 @@ class AccessCodeRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def verify_access_code(request):
+    """Verify an access code and return details"""
+    
+    # Check if user is admin or security
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
     code = request.data.get('code')
-    access_code = AccessCode.objects.filter(code=code, status=True).first()
-    if access_code:
-        return Response({"message": "Access code is valid"}, status=status.HTTP_200_OK)
-    return Response({"error": "Invalid or expired access code"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if not code:
+        return Response({'error': 'Access code is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    now = timezone.now()
+    
+    # Find the access code
+    access_code = AccessCode.objects.filter(code=code).select_related('user').first()
+    
+    if not access_code:
+        return Response({
+            'valid': False,
+            'message': 'Access code not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Check if it's currently valid
+    is_valid = (
+        access_code.status and
+        access_code.start_time <= now <= access_code.end_time
+    )
+    
+    if is_valid:
+        return Response({
+            'valid': True,
+            'message': 'Access code is valid',
+            'code_details': {
+                'id': access_code.id,
+                'code': access_code.code,
+                'code_type': access_code.code_type,
+                'start_time': access_code.start_time,
+                'end_time': access_code.end_time,
+                'user': {
+                    'id': access_code.user.id,
+                    'email': access_code.user.email,
+                    'first_name': access_code.user.first_name,
+                    'last_name': access_code.user.last_name,
+                    'phone_number': access_code.user.phone_number,
+                }
+            }
+        }, status=status.HTTP_200_OK)
+    else:
+        # Determine why it's invalid
+        if not access_code.status:
+            reason = 'Code has been deactivated'
+        elif now < access_code.start_time:
+            reason = 'Code is not yet active'
+        elif now > access_code.end_time:
+            reason = 'Code has expired'
+        else:
+            reason = 'Code is invalid'
+        
+        return Response({
+            'valid': False,
+            'message': reason,
+            'code_details': {
+                'code_type': access_code.code_type,
+                'start_time': access_code.start_time,
+                'end_time': access_code.end_time,
+            }
+        }, status=status.HTTP_400_BAD_REQUEST)
