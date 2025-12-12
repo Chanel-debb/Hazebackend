@@ -146,6 +146,46 @@ def get_security_stats(request):
         'denied': denied
     }, status=status.HTTP_200_OK)
 
+@api_view(['GET']) # Check active access codes
+@permission_classes([IsAuthenticated])
+def get_active_access_codes(request):
+    """Get only currently active/valid access codes for admin/security"""
+    
+    # Check if user is admin or security
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    now = timezone.now()
+    
+    # Get only active access codes (valid right now)
+    active_codes = AccessCode.objects.filter(
+        status=True,
+        start_time__lte=now,
+        end_time__gte=now
+    ).select_related('user').order_by('-created_at')
+    
+    # Serialize with user info
+    codes_data = []
+    for code in active_codes:
+        codes_data.append({
+            'id': code.id,
+            'code': code.code,
+            'code_type': code.code_type,
+            'start_time': code.start_time,
+            'end_time': code.end_time,
+            'status': code.status,
+            'created_at': code.created_at,
+            'user': {
+                'id': code.user.id,
+                'email': code.user.email,
+                'first_name': code.user.first_name,
+                'last_name': code.user.last_name,
+                'phone_number': code.user.phone_number,
+            }
+        })
+    
+    return Response(codes_data, status=status.HTTP_200_OK)
+
 
 
 """Class Based View (CBV)"""

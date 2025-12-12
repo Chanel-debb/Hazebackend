@@ -14,7 +14,8 @@ from .views import (
     payment,
     create_payment,
     verify_access_code,
-    get_security_stats
+    get_security_stats,
+    get_active_access_codes
 )
 
 
@@ -38,7 +39,9 @@ urlpatterns = [
     path('estate-payments', payment, name="Estate Payments"),
     path('create-estate-payment', create_payment, name="Create Estate Payment"),
     path('verify-access-code', verify_access_code, name="Verify Access Code"),
+    # admin/security stats
     path('security-stats', get_security_stats, name='security-stats'),
+    path('active-access-codes', get_active_access_codes, name='active-access-codes'),
 ]
 
 # {
