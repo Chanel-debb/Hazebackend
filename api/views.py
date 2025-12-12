@@ -191,7 +191,13 @@ def get_active_access_codes(request):
 """Class Based View (CBV)"""
 
 class AnnouncementView(views.APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrModeratorUser]
+    def get_permissions(self):
+        # GET requests: any authenticated user can view
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        # POST requests: only admin/moderator can create
+        return [IsAuthenticated(), IsAdminOrModeratorUser()]
+    
     def post(self, request, format=None): # POST METHOD
         serializer = AnnouncementSerializer(data=request.data)
         if serializer.is_valid():

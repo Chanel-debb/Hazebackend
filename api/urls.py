@@ -43,10 +43,3 @@ urlpatterns = [
     path('security-stats', get_security_stats, name='security-stats'),
     path('active-access-codes', get_active_access_codes, name='active-access-codes'),
 ]
-
-# {
-#     "fullname": "Joyce Offorey",   
-#     "phone_number": "092867632763",
-#     "decsription": "Demo guest",
-#     "signed_in": "2025-10-29T16:30:45+01:00"
-# }
