@@ -13,7 +13,8 @@ from .views import (
     transaction,
     payment,
     create_payment,
-    verify_access_code
+    verify_access_code,
+    get_security_stats
 )
 
 
