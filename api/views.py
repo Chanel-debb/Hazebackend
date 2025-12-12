@@ -1,9 +1,10 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from .serializers import VistorSerializer, AnnouncementSerializer, AccessCodeSerializer, EstatePaymentSerializer, PaymentTransactionSerializer
 from .models import Vistor, Announcement, AccessCode, EstatePayment, PaymentTransaction
 from rest_framework import status
 from django.utils import timezone
+from datetime import datetime, timedelta
 from rest_framework.response import Response
 from rest_framework import views, generics
 from django.http import Http404
@@ -103,6 +104,49 @@ def update_visitor_signout(request, id):
         obj.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
     return Response({"error": "wrong data"}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET']) # security stats
+@permission_classes([IsAuthenticated])
+def get_security_stats(request):
+    """Get statistics for security dashboard"""
+    
+    # Check if user is admin or security
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    today = timezone.now().date()
+    today_start = datetime.combine(today, datetime.min.time())
+    today_start = timezone.make_aware(today_start)
+    
+    # Active passes (access codes that are currently valid)
+    active_passes = AccessCode.objects.filter(
+        status=True,
+        start_time__lte=timezone.now(),
+        end_time__gte=timezone.now()
+    ).count()
+    
+    # Pending visitors (visitors who are approved but haven't signed in yet)
+    pending_visitors = Vistor.objects.filter(
+        signed_in__isnull=True,
+        signed_out__isnull=True
+    ).count()
+    
+    # Today's entries (visitors who signed in today)
+    todays_entries = Vistor.objects.filter(
+        signed_in__gte=today_start
+    ).count()
+    
+    # Denied - for now we'll use 0, you can add a "denied" field later
+    denied = 0
+    
+    return Response({
+        'active_passes': active_passes,
+        'pending_visitors': pending_visitors,
+        'todays_entries': todays_entries,
+        'denied': denied
+    }, status=status.HTTP_200_OK)
+
+
 
 """Class Based View (CBV)"""
 

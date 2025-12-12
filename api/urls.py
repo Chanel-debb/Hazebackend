@@ -37,6 +37,7 @@ urlpatterns = [
     path('estate-payments', payment, name="Estate Payments"),
     path('create-estate-payment', create_payment, name="Create Estate Payment"),
     path('verify-access-code', verify_access_code, name="Verify Access Code"),
+    path('security-stats', get_security_stats, name='security-stats'),
 ]
 
 # {
