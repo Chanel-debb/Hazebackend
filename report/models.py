@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from user.models import User  # Your User model
+from user.models import User  
 
 class Report(models.Model):
     CATEGORY_CHOICES = [

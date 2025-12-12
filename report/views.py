@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status, filters
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
@@ -109,3 +109,69 @@ class ReportViewSet(viewsets.ModelViewSet):
         }
         
         return Response(stats)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_reports(request):
+    """Get all reports for admin dashboard with optional status filter"""
+    
+    # Check if user is admin or security
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    # Get status filter from query params (e.g., ?status=pending)
+    status_filter = request.GET.get('status', None)
+    
+    if status_filter:
+        reports = Report.objects.filter(status=status_filter).select_related('user')
+    else:
+        reports = Report.objects.all().select_related('user')
+    
+    reports = reports.order_by('-created_at')
+    serializer = ReportSerializer(reports, many=True)
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_report_status(request, report_id):
+    """Update report status and admin notes"""
+    
+    # Check if user is admin or security
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        report = Report.objects.get(id=report_id)
+    except Report.DoesNotExist:
+        return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Update status if provided
+    new_status = request.data.get('status')
+    if new_status:
+        report.status = new_status
+        
+        # Set resolved_at if status is resolved or closed
+        if new_status in ['resolved', 'closed'] and not report.resolved_at:
+            report.resolved_at = timezone.now()
+    
+    # Update admin notes if provided
+    admin_notes = request.data.get('admin_notes')
+    if admin_notes:
+        report.admin_notes = admin_notes
+    
+    # Assign to admin if provided
+    assigned_to_id = request.data.get('assigned_to')
+    if assigned_to_id:
+        try:
+            from user.models import User
+            assigned_user = User.objects.get(id=assigned_to_id)
+            report.assigned_to = assigned_user
+        except User.DoesNotExist:
+            pass
+    
+    report.save()
+    serializer = ReportSerializer(report)
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
