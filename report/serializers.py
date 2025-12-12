@@ -1,15 +1,22 @@
 from rest_framework import serializers
 from .models import Report
 
+class UserBasicSerializer(serializers.Serializer):
+    """Nested serializer for user details"""
+    id = serializers.IntegerField()
+    email = serializers.EmailField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    phone_number = serializers.CharField()
+
 class ReportSerializer(serializers.ModelSerializer):
-    user_name = serializers.SerializerMethodField()
+    user = UserBasicSerializer(read_only=True)
     
     class Meta:
         model = Report
         fields = [
             'id',
             'user',
-            'user_name',
             'category',
             'title',
             'description',
@@ -24,10 +31,7 @@ class ReportSerializer(serializers.ModelSerializer):
             'admin_notes',
             'assigned_to'
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'user_name']
-    
-    def get_user_name(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}" if obj.user else "Unknown"
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
