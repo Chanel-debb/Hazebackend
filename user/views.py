@@ -25,6 +25,8 @@ class UserSignupView(views.APIView):
             # Get user role (default to resident)
             user_role = request.data.get('role', 'resident')
             
+            receipt = None  # ← Initialize receipt as None
+            
             # Only residents need receipt IDs
             if user_role == 'resident':
                 receipt_id = request.data.get('receipt_id')
@@ -48,7 +50,7 @@ class UserSignupView(views.APIView):
             user = serializer.save()
             
             # If resident, handle receipt and expiry
-            if user.role == 'resident':
+            if user.role == 'resident' and receipt:  # ← Check receipt exists
                 # Mark receipt as used
                 receipt.is_used = True
                 receipt.used_by = user
@@ -79,12 +81,11 @@ class UserSignupView(views.APIView):
                     'lastname': user.last_name,
                     'othernames': user.other_names,
                     'phone_number': user.phone_number,
-                    'receipt_id': user.receipt_id if hasattr(user, 'receipt_id') else None,
                     'role': user.role,
                 }
             }, status=status.HTTP_201_CREATED)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+            
 class UserLoginView(views.APIView):
     def post(self, request, format=None):
         email = request.data.get('email')
