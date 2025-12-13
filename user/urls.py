@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from django.urls import path
-from .views import UserSignupView, UserLoginView, UserUpdateView, UsersView, update_profile
+from .views import UserSignupView, UserLoginView, UserUpdateView, UsersView, update_profile,generate_receipt_id,get_all_receipt_ids,get_receipt_stats,delete_receipt_id
 
 
 urlpatterns = [
@@ -14,4 +14,9 @@ urlpatterns = [
     path('user/<int:id>/', UserUpdateView.as_view(), name='user_detail'),
     path('profile/update/',update_profile, name='update-profile'),
     # path('webhook/paystack/',paystack_webhook, name='paystack_webhook'),
+    path('generate-receipt', generate_receipt_id, name='generate-receipt'),
+    path('receipt-ids', get_all_receipt_ids, name='receipt-ids'),
+    path('receipt-stats', get_receipt_stats, name='receipt-stats'),
+    path('delete-receipt/<int:receipt_id>', delete_receipt_id, name='delete-receipt'),
+
 ]

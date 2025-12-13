@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Visitor
+from .models import User, Visitor, ReceiptID
 
 
 
@@ -58,3 +58,33 @@ class VistorSerializer(serializers.ModelSerializer):
         model = Visitor
         fields = ['id', 'fullname', 'created_at', 'signed_in']
         read_only_fields = ['id', 'created_at']
+
+class ReceiptIDSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+    used_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ReceiptID
+        fields = [
+            'id',
+            'receipt_code',
+            'type',
+            'is_used',
+            'used_by',
+            'used_by_name',
+            'created_at',
+            'used_at',
+            'created_by',
+            'created_by_name'
+        ]
+        read_only_fields = ['id', 'receipt_code', 'created_at', 'used_at', 'is_used', 'used_by']
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return f"{obj.created_by.first_name or ''} {obj.created_by.last_name or ''}".strip() or obj.created_by.email
+        return "System"
+    
+    def get_used_by_name(self, obj):
+        if obj.used_by:
+            return f"{obj.used_by.first_name or ''} {obj.used_by.last_name or ''}".strip() or obj.used_by.email
+        return None

@@ -1,7 +1,10 @@
+import uuid
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from datetime import timedelta
+
 
 
 # Custom user manager
@@ -95,6 +98,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ["phone_number"]
 
     objects = AppUserManager()
+    account_expiry_date = models.DateTimeField(null=True, blank=True)
+    account_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('active', 'Active'),
+            ('expired', 'Expired'),
+            ('archived', 'Archived'),
+        ],
+        default='active'
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["created_at"]
@@ -117,3 +131,42 @@ class Visitor(models.Model):
 
     def __str__(self):
         return self.fullname
+
+# receipt ID model
+class ReceiptID(models.Model):
+    class Type(models.TextChoices):
+        OWNER = "owner", "Owner/Landlord"
+        TENANT = "tenant", "Tenant"
+    
+    id = models.AutoField(primary_key=True)
+    receipt_code = models.CharField(max_length=20, unique=True, editable=False)
+    type = models.CharField(max_length=10, choices=Type.choices)
+    is_used = models.BooleanField(default=False)
+    used_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='receipt_used'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='receipts_created'
+    )
+    
+    def save(self, *args, **kwargs):
+        if not self.receipt_code:
+            # Generate unique receipt code
+            self.receipt_code = f"REC-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.receipt_code} ({self.get_type_display()})"
+    
+    class Meta:
+        ordering = ['-created_at']

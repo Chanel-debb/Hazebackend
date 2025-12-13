@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import User
+from .models import User, ReceiptID
 from .serializers import UserSerializer, UserSignupSerializer, UserLoginSerializer, UserUpdateSerializer
 from rest_framework import generics, status, views, response
 from rest_framework_simplejwt.tokens import RefreshToken 
@@ -9,10 +9,12 @@ from .backend import CustomBackend
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, logout
 from .models import Visitor
-from .serializers import VistorSerializer
+from .serializers import VistorSerializer, ReceiptIDSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from datetime import timedelta
+from django.utils import timezone
 
 auth = CustomBackend()
 
@@ -20,7 +22,41 @@ class UserSignupView(views.APIView):
     def post(self, request, format=None):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
+            # Validate receipt ID
+            receipt_id = request.data.get('receipt_id')
+            
+            if not receipt_id:
+                return response.Response(
+                    {'error': 'Receipt ID is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if receipt exists and is unused
+            try:
+                receipt = ReceiptID.objects.get(receipt_code=receipt_id, is_used=False)
+            except ReceiptID.DoesNotExist:
+                return response.Response(
+                    {'error': 'Invalid or already used receipt ID'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Create user
             user = serializer.save()
+            
+            # Mark receipt as used
+            receipt.is_used = True
+            receipt.used_by = user
+            receipt.used_at = timezone.now()
+            receipt.save()
+            
+            # Set account expiry based on receipt type
+            if receipt.type == 'owner':
+                user.account_expiry_date = timezone.now() + timedelta(days=3650)  # 10 years
+            else:  # tenant
+                user.account_expiry_date = timezone.now() + timedelta(days=365)  # 1 year
+            
+            user.account_status = 'active'
+            user.save()
 
             refresh_token = RefreshToken.for_user(user)
             access_token = str(refresh_token.access_token)
@@ -37,7 +73,8 @@ class UserSignupView(views.APIView):
                     'lastname': user.last_name,
                     'othernames': user.other_names,
                     'phone_number': user.phone_number,
-                    'receipt_id': user.receipt_id,  # Fixed typo
+                    'receipt_id': user.receipt_id,
+                    'role': user.role,  
                 }
             }, status=status.HTTP_201_CREATED)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -141,3 +178,93 @@ def update_profile(request):
         }, status=status.HTTP_200_OK)
     
     return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_receipt_id(request):
+    """Generate a new receipt ID (admin only)"""
+    
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    receipt_type = request.data.get('type', 'tenant')
+    
+    if receipt_type not in ['owner', 'tenant']:
+        return Response({'error': 'Invalid type. Must be "owner" or "tenant"'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    receipt = ReceiptID.objects.create(
+        type=receipt_type,
+        created_by=request.user
+    )
+    
+    serializer = ReceiptIDSerializer(receipt)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_receipt_ids(request):
+    """Get all receipt IDs (admin only)"""
+    
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    # Optional filter by status
+    filter_status = request.GET.get('status')  # 'used' or 'unused'
+    
+    receipts = ReceiptID.objects.all()
+    
+    if filter_status == 'used':
+        receipts = receipts.filter(is_used=True)
+    elif filter_status == 'unused':
+        receipts = receipts.filter(is_used=False)
+    
+    receipts = receipts.order_by('-created_at')
+    serializer = ReceiptIDSerializer(receipts, many=True)
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_receipt_stats(request):
+    """Get receipt ID statistics (admin only)"""
+    
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    total = ReceiptID.objects.count()
+    unused = ReceiptID.objects.filter(is_used=False).count()
+    used = ReceiptID.objects.filter(is_used=True).count()
+    
+    owner_receipts = ReceiptID.objects.filter(type='owner', is_used=False).count()
+    tenant_receipts = ReceiptID.objects.filter(type='tenant', is_used=False).count()
+    
+    return Response({
+        'total': total,
+        'unused': unused,
+        'used': used,
+        'unused_owner': owner_receipts,
+        'unused_tenant': tenant_receipts
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_receipt_id(request, receipt_id):
+    """Delete an unused receipt ID (admin only)"""
+    
+    if request.user.role not in ['admin', 'security']:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        receipt = ReceiptID.objects.get(id=receipt_id)
+    except ReceiptID.DoesNotExist:
+        return Response({'error': 'Receipt ID not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if receipt.is_used:
+        return Response({'error': 'Cannot delete used receipt ID'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    receipt.delete()
+    return Response({'message': 'Receipt ID deleted'}, status=status.HTTP_200_OK)
