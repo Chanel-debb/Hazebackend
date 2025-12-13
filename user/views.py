@@ -22,41 +22,47 @@ class UserSignupView(views.APIView):
     def post(self, request, format=None):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
-            # Validate receipt ID
-            receipt_id = request.data.get('receipt_id')
+            # Get user role (default to resident)
+            user_role = request.data.get('role', 'resident')
             
-            if not receipt_id:
-                return response.Response(
-                    {'error': 'Receipt ID is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Check if receipt exists and is unused
-            try:
-                receipt = ReceiptID.objects.get(receipt_code=receipt_id, is_used=False)
-            except ReceiptID.DoesNotExist:
-                return response.Response(
-                    {'error': 'Invalid or already used receipt ID'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Only residents need receipt IDs
+            if user_role == 'resident':
+                receipt_id = request.data.get('receipt_id')
+                
+                if not receipt_id:
+                    return response.Response(
+                        {'error': 'Receipt ID is required for resident registration'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Check if receipt exists and is unused
+                try:
+                    receipt = ReceiptID.objects.get(receipt_code=receipt_id, is_used=False)
+                except ReceiptID.DoesNotExist:
+                    return response.Response(
+                        {'error': 'Invalid or already used receipt ID'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             # Create user
             user = serializer.save()
             
-            # Mark receipt as used
-            receipt.is_used = True
-            receipt.used_by = user
-            receipt.used_at = timezone.now()
-            receipt.save()
-            
-            # Set account expiry based on receipt type
-            if receipt.type == 'owner':
-                user.account_expiry_date = timezone.now() + timedelta(days=3650)  # 10 years
-            else:  # tenant
-                user.account_expiry_date = timezone.now() + timedelta(days=365)  # 1 year
-            
-            user.account_status = 'active'
-            user.save()
+            # If resident, handle receipt and expiry
+            if user.role == 'resident':
+                # Mark receipt as used
+                receipt.is_used = True
+                receipt.used_by = user
+                receipt.used_at = timezone.now()
+                receipt.save()
+                
+                # Set account expiry based on receipt type
+                if receipt.type == 'owner':
+                    user.account_expiry_date = timezone.now() + timedelta(days=3650)  # 10 years
+                else:  # tenant
+                    user.account_expiry_date = timezone.now() + timedelta(days=365)  # 1 year
+                
+                user.account_status = 'active'
+                user.save()
 
             refresh_token = RefreshToken.for_user(user)
             access_token = str(refresh_token.access_token)
@@ -73,8 +79,8 @@ class UserSignupView(views.APIView):
                     'lastname': user.last_name,
                     'othernames': user.other_names,
                     'phone_number': user.phone_number,
-                    'receipt_id': user.receipt_id,
-                    'role': user.role,  
+                    'receipt_id': user.receipt_id if hasattr(user, 'receipt_id') else None,
+                    'role': user.role,
                 }
             }, status=status.HTTP_201_CREATED)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
