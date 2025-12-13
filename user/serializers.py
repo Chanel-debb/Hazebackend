@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Visitor, ReceiptID
+from .models import User, Visitor, ReceiptID, UserPreferences
 
 
 
@@ -88,3 +88,9 @@ class ReceiptIDSerializer(serializers.ModelSerializer):
         if obj.used_by:
             return f"{obj.used_by.first_name or ''} {obj.used_by.last_name or ''}".strip() or obj.used_by.email
         return None
+
+class UserPreferencesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPreferences
+        fields = ['email_updates', 'sms_alerts', 'system_alerts', 'updated_at']
+        read_only_fields = ['updated_at']

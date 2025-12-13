@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from django.urls import path
-from .views import UserSignupView, UserLoginView, UserUpdateView, UsersView, update_profile,generate_receipt_id,get_all_receipt_ids,get_receipt_stats,delete_receipt_id
+from .views import UserSignupView, UserLoginView, UserUpdateView, UsersView, update_profile,generate_receipt_id,get_all_receipt_ids,get_receipt_stats,delete_receipt_id, get_user_preferences, update_user_preferences
 
 
 urlpatterns = [
@@ -18,5 +18,7 @@ urlpatterns = [
     path('receipt-ids', get_all_receipt_ids, name='receipt-ids'),
     path('receipt-stats', get_receipt_stats, name='receipt-stats'),
     path('delete-receipt/<int:receipt_id>', delete_receipt_id, name='delete-receipt'),
+    path('preferences', get_user_preferences, name='get-preferences'),
+    path('preferences/update', update_user_preferences, name='update-preferences'),
 
 ]

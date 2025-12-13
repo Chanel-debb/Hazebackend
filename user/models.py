@@ -170,3 +170,17 @@ class ReceiptID(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+
+class UserPreferences(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferences')
+    email_updates = models.BooleanField(default=False)
+    sms_alerts = models.BooleanField(default=False)
+    system_alerts = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.user.email} - Preferences"
+    
+    class Meta:
+        verbose_name_plural = "User Preferences"

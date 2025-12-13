@@ -8,8 +8,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .backend import CustomBackend
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, logout
-from .models import Visitor
-from .serializers import VistorSerializer, ReceiptIDSerializer
+from .models import Visitor, UserPreferences
+from .serializers import VistorSerializer, ReceiptIDSerializer, UserPreferencesSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -85,7 +85,7 @@ class UserSignupView(views.APIView):
                 }
             }, status=status.HTTP_201_CREATED)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+
 class UserLoginView(views.APIView):
     def post(self, request, format=None):
         email = request.data.get('email')
@@ -275,3 +275,26 @@ def delete_receipt_id(request, receipt_id):
     
     receipt.delete()
     return Response({'message': 'Receipt ID deleted'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_preferences(request):
+    """Get user preferences"""
+    preferences, created = UserPreferences.objects.get_or_create(user=request.user)
+    serializer = UserPreferencesSerializer(preferences)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_user_preferences(request):
+    """Update user preferences"""
+    preferences, created = UserPreferences.objects.get_or_create(user=request.user)
+    
+    serializer = UserPreferencesSerializer(preferences, data=request.data, partial=True)
+    
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
